@@ -1,0 +1,29 @@
+{
+  "name": "sapir-distance",
+  "version": "1.0.0",
+  "description": "A distance-calculating service using Google-Maps SDK",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "tsc && npm run serve",
+    "serve": "node dist/index.js",
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Shahar-Y/Sapir-Distance.git"
+  },
+  "author": "Shahar-Y",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Shahar-Y/Sapir-Distance/issues"
+  },
+  "homepage": "https://github.com/Shahar-Y/Sapir-Distance#readme",
+  "dependencies": {
+    "@googlemaps/google-maps-services-js": "^3.3.13",
+    "dotenv": "^16.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.30"
+  }
+}
