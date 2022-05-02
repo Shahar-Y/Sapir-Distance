@@ -1,4 +1,4 @@
-import { Client, DirectionsRequest } from "@googlemaps/google-maps-services-js";
+import { Client, DirectionsRequest, TravelMode } from "@googlemaps/google-maps-services-js";
 import axios from "axios";
 
 if (process.env.NODE_ENV !== "production") {
@@ -18,9 +18,10 @@ const run = async () => {
 
   const directionsRequest: DirectionsRequest = {
     params: {
-      origin: "Disneyland",
-      destination: "Universal Studios",
+      origin: "tel aviv, israel",
+      destination: "haifa, israel",
       key: process.env.GOOGLE_MAPS_API_KEY || "",
+      mode: TravelMode.transit,
     },
   };
 
