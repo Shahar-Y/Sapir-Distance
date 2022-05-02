@@ -1,47 +1,112 @@
-import { Client, DirectionsRequest, TravelMode } from "@googlemaps/google-maps-services-js";
-import axios from "axios";
+import {
+  Client,
+  DirectionsRequest,
+  DirectionsResponseStatus,
+  TrafficModel,
+  TravelMode,
+} from '@googlemaps/google-maps-services-js';
+import axios from 'axios';
+import inquirer from 'inquirer';
 
-if (process.env.NODE_ENV !== "production") {
-  require("dotenv").config();
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
 }
+
+const questions = [
+  {
+    type: 'input',
+    name: 'origin',
+    message: 'Choose your starting point:',
+  },
+  {
+    type: 'input',
+    name: 'destination',
+    message: 'Choose your end point:',
+  },
+];
+
+let origin: string;
+let destination: string;
+
+let arrival_time: number;
+let departure_time: number;
+
+let points: number = 0;
 
 const client = new Client();
 
-const run = async () => {
-  const axiosInstance = axios.create({
-    baseURL: "https://some-domain.com/api/",
-    timeout: 1000,
-    headers: { "X-Custom-Header": "foobar" },
-  });
+(async () => {
+  // await inquirer.prompt(questions).then((answers) => {
+  //   origin = answers.origin;
+  //   destination = answers.destination;
+  // });
 
-  console.log(process.env.GOOGLE_MAPS_API_KEY);
+  origin = 'פריחת הסמדר 9 גבעת עדה ישראל';
+  destination = 'שלמה בן יוסף 32 תל אביב ישראל';
+  departure_time = 1651523975;
+  arrival_time = 1651523975;
+
+  const axiosInstance = axios.create({
+    baseURL: 'https://some-domain.com/api/',
+    timeout: 1000,
+    headers: { 'X-Custom-Header': 'foobar' },
+  });
 
   const directionsRequest: DirectionsRequest = {
     params: {
-      origin: "tel aviv, israel",
-      destination: "haifa, israel",
-      key: process.env.GOOGLE_MAPS_API_KEY || "",
+      origin,
+      destination,
+      departure_time,
+      // arrival_time,
+      key: process.env.GOOGLE_MAPS_API_KEY || '',
       mode: TravelMode.transit,
+      // traffic_model: TrafficModel.best_guess,
+      // traffic_model: TrafficModel.pessimistic,
+      // traffic_model: TrafficModel.optimistic,
+      alternatives: true,
     },
   };
 
-  const x = await client.directions(directionsRequest);
-  console.log(x);
-};
+  const results = await client.directions(directionsRequest);
+  const data = results.data;
 
-run();
+  // If we did not get back an answer of 'OK' - print it and the reason for this
+  if (
+    (data.status as unknown as DirectionsResponseStatus) !==
+    DirectionsResponseStatus.OK
+  ) {
+    console.log('No routes found, Cause -', data.status);
+    return;
+  }
 
-// client
-//   .elevation({
-//     params: {
-//       locations: [{ lat: 45, lng: -110 }],
-//       key: process.env.GOOGLE_MAPS_API_KEY || "NO-KEY",
-//     },
-//     timeout: 1000, // milliseconds
-//   })
-//   .then((r) => {
-//     console.log(r.data.results[0].elevation);
-//   })
-//   .catch((e) => {
-//     console.log(e);
-//   });
+  const routes = data.routes;
+
+  /**
+   * route params:
+   * legs        - array
+   */
+  routes.forEach((route) => {
+    /**
+     * leg params:
+     * arrival_time     - object
+     * departure_time   - object
+     * distance         - object
+     * duration         - object
+     * steps            - array
+     */
+    route.legs.forEach((leg) => {
+      console.log(leg.duration);
+
+      /**
+       * step params:
+       * steps        - array
+       * travel_mode  - TravelMode
+       */
+      leg.steps.forEach((step) => {
+        console.log(step.travel_mode);
+      });
+    });
+  });
+
+  // console.log('Final points:', points);
+})();
