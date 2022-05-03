@@ -23,28 +23,68 @@ const questions = [
     name: 'destination',
     message: 'Choose your end point:',
   },
+  {
+    type: 'list',
+    name: 'arrival_or_departure',
+    message: 'Departure time or arrival time?',
+    choices: ['arrival', 'departure'],
+  },
+  {
+    type: 'list',
+    name: 'time',
+    message: 'Choose the time:',
+    choices: [
+      '00',
+      '01',
+      '02',
+      '03',
+      '04',
+      '05',
+      '06',
+      '07',
+      '08',
+      '09',
+      '10',
+      '11',
+      '12',
+      '13',
+      '14',
+      '15',
+      '16',
+      '17',
+      '18',
+      '19',
+      '20',
+      '21',
+      '22',
+      '23',
+    ],
+  },
 ];
 
-let origin: string;
-let destination: string;
+let origin!: string;
+let destination!: string;
 
-let arrival_time: number;
-let departure_time: number;
+let arrival_time!: number;
+let departure_time!: number;
 
 let points: number = 0;
 
 const client = new Client();
 
 (async () => {
-  // await inquirer.prompt(questions).then((answers) => {
-  //   origin = answers.origin;
-  //   destination = answers.destination;
-  // });
+  await inquirer.prompt(questions).then((answers) => {
+    origin = answers.origin;
+    destination = answers.destination;
 
-  origin = 'פריחת הסמדר 9 גבעת עדה ישראל';
-  destination = 'שלמה בן יוסף 32 תל אביב ישראל';
-  departure_time = 1651523975;
-  arrival_time = 1651523975;
+    if (answers.arrival_or_departure === 'arrival') arrival_time = answers.time;
+    else departure_time = answers.time;
+  });
+
+  // origin = 'פריחת הסמדר 9 גבעת עדה ישראל';
+  // destination = 'שלמה בן יוסף 32 תל אביב ישראל';
+  // departure_time = 1651523975;
+  // arrival_time = 1651523975;
 
   const axiosInstance = axios.create({
     baseURL: 'https://some-domain.com/api/',
@@ -52,12 +92,17 @@ const client = new Client();
     headers: { 'X-Custom-Header': 'foobar' },
   });
 
+  // set the arrival_time or departure_time
+  let query = [];
+
+  if (departure_time) query.push({ departure_time: departure_time });
+  else query.push({ arrival_time: arrival_time });
+
   const directionsRequest: DirectionsRequest = {
     params: {
       origin,
       destination,
-      departure_time,
-      // arrival_time,
+      ...query,
       key: process.env.GOOGLE_MAPS_API_KEY || '',
       mode: TravelMode.transit,
       // traffic_model: TrafficModel.best_guess,
