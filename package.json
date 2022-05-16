@@ -23,7 +23,8 @@
     "@googlemaps/google-maps-services-js": "^3.3.13",
     "axios": "^0.27.2",
     "dotenv": "^16.0.0",
-    "inquirer": "^8.2.4"
+    "inquirer": "^8.2.4",
+    "inquirer-datepicker-prompt": "^0.4.2"
   },
   "devDependencies": {
     "@types/inquirer": "^8.2.1",

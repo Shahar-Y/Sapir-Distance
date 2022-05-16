@@ -2,7 +2,6 @@ import {
   Client,
   DirectionsRequest,
   DirectionsResponseStatus,
-  TrafficModel,
   TravelMode,
 } from '@googlemaps/google-maps-services-js';
 import axios from 'axios';
@@ -11,6 +10,8 @@ import inquirer from 'inquirer';
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
+
+inquirer.registerPrompt('datetime', require('inquirer-datepicker-prompt'));
 
 const questions = [
   {
@@ -30,35 +31,10 @@ const questions = [
     choices: ['arrival', 'departure'],
   },
   {
-    type: 'list',
-    name: 'time',
+    type: 'datetime',
+    name: 'dateTime',
     message: 'Choose the time:',
-    choices: [
-      '00',
-      '01',
-      '02',
-      '03',
-      '04',
-      '05',
-      '06',
-      '07',
-      '08',
-      '09',
-      '10',
-      '11',
-      '12',
-      '13',
-      '14',
-      '15',
-      '16',
-      '17',
-      '18',
-      '19',
-      '20',
-      '21',
-      '22',
-      '23',
-    ],
+    format: ['dd', '/', 'mm', '/', 'yyyy', ' ', 'hh', ':', 'MM', ' ', 'TT'],
   },
 ];
 
@@ -72,18 +48,39 @@ let points: number = 0;
 
 const client = new Client();
 
-(async () => {
-  await inquirer.prompt(questions).then((answers) => {
-    origin = answers.origin;
-    destination = answers.destination;
+const getFromStringTheNumberOfMinutes = (text: string) => {
+  const hourIncludes = text.includes('hours');
 
-    if (answers.arrival_or_departure === 'arrival') arrival_time = answers.time;
-    else departure_time = answers.time;
-  });
+  const splitString = text.split(' ');
 
-  // origin = 'פריחת הסמדר 9 גבעת עדה ישראל';
-  // destination = 'שלמה בן יוסף 32 תל אביב ישראל';
-  // departure_time = 1651523975;
+  let minute!: number;
+  let hour!: number | undefined;
+
+  if (hourIncludes) {
+    hour = Number(splitString[0]) * 60;
+    minute = Number(splitString[2]);
+  } else minute = Number(splitString[0]);
+
+  return hour ? hour + minute : minute;
+};
+
+const main = async () => {
+  // await inquirer.prompt(questions).then((answers) => {
+  //   origin = answers.origin;
+  //   destination = answers.destination;
+
+  //   const unixTime = +new Date(answers.dateTime);
+
+  //   if (answers.arrival_or_departure === 'arrival') arrival_time = unixTime;
+  //   else departure_time = unixTime;
+  // });
+
+  // origin = 'נופר 14 רחובות ישראל';
+  // origin = 'נחל נעמן 1 אשדוד ישראל';
+  origin = 'פריחת הסמדר 9 גבעת עדה ישראל';
+  destination = 'שלמה בן יוסף 32 תל אביב ישראל';
+  // destination = 'אילת';
+  departure_time = 1652853600;
   // arrival_time = 1651523975;
 
   const axiosInstance = axios.create({
@@ -105,9 +102,6 @@ const client = new Client();
       ...query,
       key: process.env.GOOGLE_MAPS_API_KEY || '',
       mode: TravelMode.transit,
-      // traffic_model: TrafficModel.best_guess,
-      // traffic_model: TrafficModel.pessimistic,
-      // traffic_model: TrafficModel.optimistic,
       alternatives: true,
     },
   };
@@ -127,31 +121,46 @@ const client = new Client();
   const routes = data.routes;
 
   /**
-   * route params:
-   * legs        - array
+   * The time it takes from point to point:
+   * ((number of bus * bus time) + (number of bus * bus time) + .....) / 60
+   * 
+   * Average waiting time per point:
+   * (number of buses * 2) / 60
    */
-  routes.forEach((route) => {
-    /**
-     * leg params:
-     * arrival_time     - object
-     * departure_time   - object
-     * distance         - object
-     * duration         - object
-     * steps            - array
-     */
-    route.legs.forEach((leg) => {
-      console.log(leg.duration);
 
-      /**
-       * step params:
-       * steps        - array
-       * travel_mode  - TravelMode
-       */
+  routes.forEach((route) => {
+    route.legs.forEach((leg) => {
       leg.steps.forEach((step) => {
-        console.log(step.travel_mode);
+        console.log(step.duration);
+        console.log(getFromStringTheNumberOfMinutes(step.duration.text));
       });
     });
   });
 
-  // console.log('Final points:', points);
+  console.log('----------------------------------------');
+  console.log('\x1b[36m%s\x1b[0m', 'Final points:', points);
+  console.log('----------------------------------------');
+};
+
+(async () => {
+  const continueQuestions = [
+    {
+      type: 'list',
+      name: 'continueGet',
+      message: 'Do another calculation?',
+      choices: ['continue', 'stop'],
+    },
+  ];
+
+  let continueGet: boolean = true;
+
+  main();
+
+  // while (continueGet) {
+  //   await main();
+
+  //   await inquirer.prompt(continueQuestions).then((answers) => {
+  //     if (answers.continueGet === 'stop') continueGet = false;
+  //   });
+  // }
 })();
