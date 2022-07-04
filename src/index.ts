@@ -2,17 +2,18 @@ import {
   Client,
   DirectionsRequest,
   DirectionsResponseStatus,
+  // Language,
   TravelMode,
 } from '@googlemaps/google-maps-services-js';
 import axios from 'axios';
 import inquirer from 'inquirer';
+import mysql, { Connection } from 'mysql2';
 
-if (process.env.NODE_ENV !== 'production') {
-  require('dotenv').config();
-}
+require('dotenv').config();
 
 inquirer.registerPrompt('datetime', require('inquirer-datepicker-prompt'));
 
+// the questions to the google api
 const questions = [
   {
     type: 'input',
@@ -38,6 +39,17 @@ const questions = [
   },
 ];
 
+// sql variables
+const mysqlHost = process.env.MYSQL_HOST || 'localhost';
+const mysqlPort = process.env.MYSQL_PORT || '3307';
+const mysqlUser = process.env.MYSQL_USER || 'root';
+const mysqlPass = process.env.MYSQL_PASS || 'root';
+const mysqlDB = process.env.MYSQL_DB || 'mydb';
+
+// the connection to sql
+let databaseConnection: Connection;
+
+// google api variables
 let origin!: string;
 let destination!: string;
 
@@ -48,6 +60,11 @@ let points: number = 0;
 
 const client = new Client();
 
+/**
+ *
+ * @param text
+ * @returns
+ */
 const getFromStringTheNumberOfMinutes = (text: string) => {
   const hourIncludes = text.includes('hours');
 
@@ -64,7 +81,24 @@ const getFromStringTheNumberOfMinutes = (text: string) => {
   return hour ? hour + minute : minute;
 };
 
-const main = async () => {
+/**
+ * put the csv files inside the sql if not already exists
+ */
+function createTables(): void {
+  const sqlQuery =
+    'CREATE TABLE IF NOT EXISTS emails(id int AUTO_INCREMENT, firstname VARCHAR(50), lastname VARCHAR(50), email VARCHAR(50), PRIMARY KEY(id))';
+
+  databaseConnection.query(sqlQuery, (err) => {
+    if (err) throw err;
+  });
+}
+
+/**
+ * calc the point of the user to get a bed,
+ * by - time to get to the the address givin and another questions 
+ * print in the end in the cmd the final point of the person
+ */
+const main = async (): Promise<void> => {
   // await inquirer.prompt(questions).then((answers) => {
   //   origin = answers.origin;
   //   destination = answers.destination;
@@ -95,6 +129,7 @@ const main = async () => {
   if (departure_time) query.push({ departure_time: departure_time });
   else query.push({ arrival_time: arrival_time });
 
+  // query from google api for getting the routes
   const directionsRequest: DirectionsRequest = {
     params: {
       origin,
@@ -103,9 +138,11 @@ const main = async () => {
       key: process.env.GOOGLE_MAPS_API_KEY || '',
       mode: TravelMode.transit,
       alternatives: true,
+      // language: Language.iw,
     },
   };
 
+  // get the routes
   const results = await client.directions(directionsRequest);
   const data = results.data;
 
@@ -123,11 +160,10 @@ const main = async () => {
   /**
    * The time it takes from point to point:
    * ((number of bus * bus time) + (number of bus * bus time) + .....) / 60
-   * 
+   *
    * Average waiting time per point:
    * (number of buses * 2) / 60
    */
-
   routes.forEach((route) => {
     route.legs.forEach((leg) => {
       leg.steps.forEach((step) => {
@@ -137,12 +173,37 @@ const main = async () => {
     });
   });
 
+  // read csv file to find more info about the buses
+
+  // ask more questions for add or remove points
+  // ...
+  // ...
+  // ...
+
   console.log('----------------------------------------');
   console.log('\x1b[36m%s\x1b[0m', 'Final points:', points);
   console.log('----------------------------------------');
 };
 
 (async () => {
+  // connect to the database
+  const connectionOptions = {
+    host: mysqlHost,
+    port: +mysqlPort,
+    user: mysqlUser,
+    password: mysqlPass,
+    database: mysqlDB,
+  };
+
+  databaseConnection = mysql.createConnection(connectionOptions);
+  databaseConnection.connect((err) => {
+    if (err) throw err;
+  });
+
+  // load the csv files to the database if not there
+  createTables();
+
+  // start the calculation of person
   const continueQuestions = [
     {
       type: 'list',
@@ -154,7 +215,8 @@ const main = async () => {
 
   let continueGet: boolean = true;
 
-  main();
+  // get the routs
+  // main();
 
   // while (continueGet) {
   //   await main();
