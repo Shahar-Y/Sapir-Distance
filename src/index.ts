@@ -1,17 +1,45 @@
+import { GOOGLE_MAPS_API_KEY } from './../.env';
 import {
   Client,
   DirectionsRequest,
   DirectionsResponseStatus,
-  // Language,
+  Language,
   TravelMode,
 } from '@googlemaps/google-maps-services-js';
 import axios from 'axios';
 import inquirer from 'inquirer';
-import mysql, { Connection } from 'mysql2';
+import mongoose from 'mongoose';
 
 require('dotenv').config();
 
 inquirer.registerPrompt('datetime', require('inquirer-datepicker-prompt'));
+
+const initializeMongo = async () => {
+  mongoose.connection.on('connecting', () => {
+    console.log('[MongoDB] connecting...');
+  });
+
+  mongoose.connection.on('connected', () => {
+    console.log('[MongoDB] connected');
+  });
+
+  mongoose.connection.on('error', (error) => {
+    console.log('oppssssss, error: ' + error);
+    process.exit(1);
+  });
+
+  mongoose.connection.on('disconnected', () => {
+    console.log('[MongoDB] disconnected');
+    process.exit(1);
+  });
+
+  await mongoose.connect('mongodb://localhost:27017', {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    useFindAndModify: false,
+    useCreateIndex: true,
+  });
+};
 
 // the questions to the google api
 const questions = [
@@ -38,16 +66,6 @@ const questions = [
     format: ['dd', '/', 'mm', '/', 'yyyy', ' ', 'hh', ':', 'MM', ' ', 'TT'],
   },
 ];
-
-// sql variables
-const mysqlHost = process.env.MYSQL_HOST || 'localhost';
-const mysqlPort = process.env.MYSQL_PORT || '3307';
-const mysqlUser = process.env.MYSQL_USER || 'root';
-const mysqlPass = process.env.MYSQL_PASS || 'root';
-const mysqlDB = process.env.MYSQL_DB || 'mydb';
-
-// the connection to sql
-let databaseConnection: Connection;
 
 // google api variables
 let origin!: string;
@@ -82,20 +100,8 @@ const getFromStringTheNumberOfMinutes = (text: string) => {
 };
 
 /**
- * put the csv files inside the sql if not already exists
- */
-function createTables(): void {
-  const sqlQuery =
-    'CREATE TABLE IF NOT EXISTS emails(id int AUTO_INCREMENT, firstname VARCHAR(50), lastname VARCHAR(50), email VARCHAR(50), PRIMARY KEY(id))';
-
-  databaseConnection.query(sqlQuery, (err) => {
-    if (err) throw err;
-  });
-}
-
-/**
  * calc the point of the user to get a bed,
- * by - time to get to the the address givin and another questions 
+ * by - time to get to the the address givin and another questions
  * print in the end in the cmd the final point of the person
  */
 const main = async (): Promise<void> => {
@@ -113,7 +119,6 @@ const main = async (): Promise<void> => {
   // origin = 'נחל נעמן 1 אשדוד ישראל';
   origin = 'פריחת הסמדר 9 גבעת עדה ישראל';
   destination = 'שלמה בן יוסף 32 תל אביב ישראל';
-  // destination = 'אילת';
   departure_time = 1652853600;
   // arrival_time = 1651523975;
 
@@ -135,10 +140,11 @@ const main = async (): Promise<void> => {
       origin,
       destination,
       ...query,
-      key: process.env.GOOGLE_MAPS_API_KEY || '',
+      key:
+        GOOGLE_MAPS_API_KEY || '',
       mode: TravelMode.transit,
       alternatives: true,
-      // language: Language.iw,
+      language: Language.iw,
     },
   };
 
@@ -167,8 +173,26 @@ const main = async (): Promise<void> => {
   routes.forEach((route) => {
     route.legs.forEach((leg) => {
       leg.steps.forEach((step) => {
-        console.log(step.duration);
-        console.log(getFromStringTheNumberOfMinutes(step.duration.text));
+        // if walking - add walking time
+        if (step.travel_mode === TravelMode.walking) {
+        }
+
+        // if transit -
+        if (step.travel_mode === TravelMode.transit) {
+          // get the transit name
+          const transit_details = step.transit_details;
+          const line = transit_details.line;
+          const name = line.name;
+
+          // find in routes.csv - name === route_long_name , and bring route_id
+
+          // find in trips.csv - route_id , and bring trip_id
+
+          // find in stop_times.csv - trip_id , and bring the relevant arrival_time
+        }
+
+        // console.log(step.duration);
+        // console.log(getFromStringTheNumberOfMinutes(step.duration.text));
       });
     });
   });
@@ -187,21 +211,7 @@ const main = async (): Promise<void> => {
 
 (async () => {
   // connect to the database
-  const connectionOptions = {
-    host: mysqlHost,
-    port: +mysqlPort,
-    user: mysqlUser,
-    password: mysqlPass,
-    database: mysqlDB,
-  };
-
-  databaseConnection = mysql.createConnection(connectionOptions);
-  databaseConnection.connect((err) => {
-    if (err) throw err;
-  });
-
-  // load the csv files to the database if not there
-  createTables();
+  initializeMongo();
 
   // start the calculation of person
   const continueQuestions = [
@@ -216,13 +226,13 @@ const main = async (): Promise<void> => {
   let continueGet: boolean = true;
 
   // get the routs
-  // main();
+  main();
 
-  // while (continueGet) {
-  //   await main();
+  while (continueGet) {
+    await main();
 
-  //   await inquirer.prompt(continueQuestions).then((answers) => {
-  //     if (answers.continueGet === 'stop') continueGet = false;
-  //   });
-  // }
+    await inquirer.prompt(continueQuestions).then((answers) => {
+      if (answers.continueGet === 'stop') continueGet = false;
+    });
+  }
 })();
