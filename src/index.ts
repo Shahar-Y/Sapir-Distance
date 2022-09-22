@@ -1,39 +1,40 @@
-import { GOOGLE_MAPS_API_KEY } from './../.env';
+import dotenv from "dotenv";
+import path from "path";
 import {
   Client,
   DirectionsRequest,
   DirectionsResponseStatus,
   Language,
   TravelMode,
-} from '@googlemaps/google-maps-services-js';
-import axios from 'axios';
-import inquirer from 'inquirer';
-import mongoose from 'mongoose';
+} from "@googlemaps/google-maps-services-js";
+import axios from "axios";
+import inquirer from "inquirer";
+import mongoose from "mongoose";
 
-require('dotenv').config();
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
-inquirer.registerPrompt('datetime', require('inquirer-datepicker-prompt'));
+inquirer.registerPrompt("datetime", require("inquirer-datepicker-prompt"));
 
 const initializeMongo = async () => {
-  mongoose.connection.on('connecting', () => {
-    console.log('[MongoDB] connecting...');
+  mongoose.connection.on("connecting", () => {
+    console.log("[MongoDB] connecting...");
   });
 
-  mongoose.connection.on('connected', () => {
-    console.log('[MongoDB] connected');
+  mongoose.connection.on("connected", () => {
+    console.log("[MongoDB] connected");
   });
 
-  mongoose.connection.on('error', (error) => {
-    console.log('oppssssss, error: ' + error);
+  mongoose.connection.on("error", (error) => {
+    console.log("oppssssss, error: " + error);
     process.exit(1);
   });
 
-  mongoose.connection.on('disconnected', () => {
-    console.log('[MongoDB] disconnected');
+  mongoose.connection.on("disconnected", () => {
+    console.log("[MongoDB] disconnected");
     process.exit(1);
   });
 
-  await mongoose.connect('mongodb://localhost:27017', {
+  await mongoose.connect("mongodb://localhost:27017", {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     useFindAndModify: false,
@@ -44,26 +45,26 @@ const initializeMongo = async () => {
 // the questions to the google api
 const questions = [
   {
-    type: 'input',
-    name: 'origin',
-    message: 'Choose your starting point:',
+    type: "input",
+    name: "origin",
+    message: "Choose your starting point:",
   },
   {
-    type: 'input',
-    name: 'destination',
-    message: 'Choose your end point:',
+    type: "input",
+    name: "destination",
+    message: "Choose your end point:",
   },
   {
-    type: 'list',
-    name: 'arrival_or_departure',
-    message: 'Departure time or arrival time?',
-    choices: ['arrival', 'departure'],
+    type: "list",
+    name: "arrival_or_departure",
+    message: "Departure time or arrival time?",
+    choices: ["arrival", "departure"],
   },
   {
-    type: 'datetime',
-    name: 'dateTime',
-    message: 'Choose the time:',
-    format: ['dd', '/', 'mm', '/', 'yyyy', ' ', 'hh', ':', 'MM', ' ', 'TT'],
+    type: "datetime",
+    name: "dateTime",
+    message: "Choose the time:",
+    format: ["dd", "/", "mm", "/", "yyyy", " ", "hh", ":", "MM", " ", "TT"],
   },
 ];
 
@@ -84,9 +85,9 @@ const client = new Client();
  * @returns
  */
 const getFromStringTheNumberOfMinutes = (text: string) => {
-  const hourIncludes = text.includes('hours');
+  const hourIncludes = text.includes("hours");
 
-  const splitString = text.split(' ');
+  const splitString = text.split(" ");
 
   let minute!: number;
   let hour!: number | undefined;
@@ -117,16 +118,10 @@ const main = async (): Promise<void> => {
 
   // origin = 'נופר 14 רחובות ישראל';
   // origin = 'נחל נעמן 1 אשדוד ישראל';
-  origin = 'פריחת הסמדר 9 גבעת עדה ישראל';
-  destination = 'שלמה בן יוסף 32 תל אביב ישראל';
+  origin = "פריחת הסמדר 9 גבעת עדה ישראל";
+  destination = "שלמה בן יוסף 32 תל אביב ישראל";
   departure_time = 1652853600;
-  // arrival_time = 1651523975;
-
-  const axiosInstance = axios.create({
-    baseURL: 'https://some-domain.com/api/',
-    timeout: 1000,
-    headers: { 'X-Custom-Header': 'foobar' },
-  });
+  arrival_time = 1651523975;
 
   // set the arrival_time or departure_time
   let query = [];
@@ -140,8 +135,7 @@ const main = async (): Promise<void> => {
       origin,
       destination,
       ...query,
-      key:
-        GOOGLE_MAPS_API_KEY || '',
+      key: process.env.GOOGLE_MAPS_API_KEY || "",
       mode: TravelMode.transit,
       alternatives: true,
       language: Language.iw,
@@ -151,13 +145,14 @@ const main = async (): Promise<void> => {
   // get the routes
   const results = await client.directions(directionsRequest);
   const data = results.data;
+  console.log(data);
 
   // If we did not get back an answer of 'OK' - print it and the reason for this
   if (
     (data.status as unknown as DirectionsResponseStatus) !==
     DirectionsResponseStatus.OK
   ) {
-    console.log('No routes found, Cause -', data.status);
+    console.log("No routes found, Cause -", data.status);
     return;
   }
 
@@ -204,9 +199,9 @@ const main = async (): Promise<void> => {
   // ...
   // ...
 
-  console.log('----------------------------------------');
-  console.log('\x1b[36m%s\x1b[0m', 'Final points:', points);
-  console.log('----------------------------------------');
+  console.log("----------------------------------------");
+  console.log("\x1b[36m%s\x1b[0m", "Final points:", points);
+  console.log("----------------------------------------");
 };
 
 (async () => {
@@ -216,10 +211,10 @@ const main = async (): Promise<void> => {
   // start the calculation of person
   const continueQuestions = [
     {
-      type: 'list',
-      name: 'continueGet',
-      message: 'Do another calculation?',
-      choices: ['continue', 'stop'],
+      type: "list",
+      name: "continueGet",
+      message: "Do another calculation?",
+      choices: ["continue", "stop"],
     },
   ];
 
@@ -232,7 +227,7 @@ const main = async (): Promise<void> => {
     await main();
 
     await inquirer.prompt(continueQuestions).then((answers) => {
-      if (answers.continueGet === 'stop') continueGet = false;
+      if (answers.continueGet === "stop") continueGet = false;
     });
   }
 })();
