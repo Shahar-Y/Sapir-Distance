@@ -1,5 +1,3 @@
-import dotenv from "dotenv";
-import path from "path";
 import {
   Client,
   DirectionsRequest,
@@ -7,13 +5,13 @@ import {
   Language,
   TravelMode,
 } from "@googlemaps/google-maps-services-js";
-import axios from "axios";
-import inquirer from "inquirer";
-import mongoose from "mongoose";
+import { config } from "./config";
+import mongoose, { Mongoose } from "mongoose";
+import { RouteModel, StopModel, TripModel } from "./models";
+import { IRoute, IStopTime, ITrip } from "./interfaces";
+import { TimeObject } from "./timeFunctions";
 
-dotenv.config({ path: path.resolve(__dirname, "../.env") });
-
-inquirer.registerPrompt("datetime", require("inquirer-datepicker-prompt"));
+const arrivalTime: TimeObject = new TimeObject("09:00:00");
 
 const initializeMongo = async () => {
   mongoose.connection.on("connecting", () => {
@@ -24,7 +22,7 @@ const initializeMongo = async () => {
     console.log("[MongoDB] connected");
   });
 
-  mongoose.connection.on("error", (error) => {
+  mongoose.connection.on("error", (error: Error) => {
     console.log("oppssssss, error: " + error);
     process.exit(1);
   });
@@ -34,39 +32,13 @@ const initializeMongo = async () => {
     process.exit(1);
   });
 
-  await mongoose.connect("mongodb://localhost:27017", {
+  await mongoose.connect(config.mongoDBURL, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     useFindAndModify: false,
     useCreateIndex: true,
   });
 };
-
-// the questions to the google api
-const questions = [
-  {
-    type: "input",
-    name: "origin",
-    message: "Choose your starting point:",
-  },
-  {
-    type: "input",
-    name: "destination",
-    message: "Choose your end point:",
-  },
-  {
-    type: "list",
-    name: "arrival_or_departure",
-    message: "Departure time or arrival time?",
-    choices: ["arrival", "departure"],
-  },
-  {
-    type: "datetime",
-    name: "dateTime",
-    message: "Choose the time:",
-    format: ["dd", "/", "mm", "/", "yyyy", " ", "hh", ":", "MM", " ", "TT"],
-  },
-];
 
 // google api variables
 let origin!: string;
@@ -80,42 +52,11 @@ let points: number = 0;
 const client = new Client();
 
 /**
- *
- * @param text
- * @returns
- */
-const getFromStringTheNumberOfMinutes = (text: string) => {
-  const hourIncludes = text.includes("hours");
-
-  const splitString = text.split(" ");
-
-  let minute!: number;
-  let hour!: number | undefined;
-
-  if (hourIncludes) {
-    hour = Number(splitString[0]) * 60;
-    minute = Number(splitString[2]);
-  } else minute = Number(splitString[0]);
-
-  return hour ? hour + minute : minute;
-};
-
-/**
  * calc the point of the user to get a bed,
  * by - time to get to the the address givin and another questions
  * print in the end in the cmd the final point of the person
  */
 const main = async (): Promise<void> => {
-  // await inquirer.prompt(questions).then((answers) => {
-  //   origin = answers.origin;
-  //   destination = answers.destination;
-
-  //   const unixTime = +new Date(answers.dateTime);
-
-  //   if (answers.arrival_or_departure === 'arrival') arrival_time = unixTime;
-  //   else departure_time = unixTime;
-  // });
-
   // origin = 'נופר 14 רחובות ישראל';
   // origin = 'נחל נעמן 1 אשדוד ישראל';
   origin = "פריחת הסמדר 9 גבעת עדה ישראל";
@@ -135,7 +76,7 @@ const main = async (): Promise<void> => {
       origin,
       destination,
       ...query,
-      key: process.env.GOOGLE_MAPS_API_KEY || "",
+      key: config.googleMapsApiKey,
       mode: TravelMode.transit,
       alternatives: true,
       language: Language.iw,
@@ -145,7 +86,73 @@ const main = async (): Promise<void> => {
   // get the routes
   const results = await client.directions(directionsRequest);
   const data = results.data;
-  console.log(data);
+  console.log("starting!");
+  // console.log(data);
+  const routes = data.routes;
+  const leg = routes[0].legs[0];
+  const steps = leg.steps;
+  for (let i = 0; i < steps.length; i++) {
+    const bigStep = steps[i];
+    const travelMode = bigStep.travel_mode.toLocaleLowerCase();
+    try {
+      if (travelMode == TravelMode.transit) {
+        // console.log("bigStep: ", bigStep);
+        const line = bigStep.transit_details.line;
+        // compare line name to mongo routes long name
+        const lineRoute: IRoute | null = await RouteModel.findOne({
+          route_long_name: line.name,
+        });
+        // console.log("lineRoute: ", lineRoute);
+        const lineTrips: ITrip[] = await TripModel.find({
+          route_id: lineRoute?.route_id,
+        });
+        // console.log("lineTrips: ", lineTrips);
+
+        const tripIds: String[] = lineTrips.map((trip) => trip.trip_id);
+        // console.log("tripIds: ", tripIds);
+
+        const minArrivalTime: TimeObject = new TimeObject(
+          arrivalTime.objectToString()
+        ).addHours(-1);
+
+        const maxArrivalTime = new TimeObject(
+          arrivalTime.objectToString()
+        ).addHours(1);
+
+        const start = new Date().getTime();
+        console.log("starting stopTimes", start);
+        const query = StopModel.find(
+          { trip_id: "1_061022" }
+          // {
+          // todo: change this
+          // _id: mongoose.Types.ObjectId("63302b5852e277523d664d0e"),
+
+          // trip_id: tripIds[0],
+          // arrival_time: {
+          //   $gt: minArrivalTime.objectToString(),
+          //   $lt: maxArrivalTime.objectToString(),
+          // },
+          // }
+        );
+        const stopTimes = (await query) || [];
+
+        console.log("stopTimes: ", stopTimes);
+        const end = new Date().getTime();
+
+        console.log("ended stopTimes", end);
+        console.log("diff: ", end - start);
+        // const lineArrivalTime = line.
+        // minArrivalTime =
+        // const minArrivalTime = await StopTimeModel.findOne({
+        //   trip_id: { $in: tripIds }, arrival_time: { $gt: minArrivalTime, $lt: maxArrivalTime}
+        //   )
+      } else {
+        console.log("non-transit: ", bigStep.travel_mode);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
   // If we did not get back an answer of 'OK' - print it and the reason for this
   if (
@@ -156,7 +163,7 @@ const main = async (): Promise<void> => {
     return;
   }
 
-  const routes = data.routes;
+  // const routes = data.routes;
 
   /**
    * The time it takes from point to point:
@@ -165,32 +172,32 @@ const main = async (): Promise<void> => {
    * Average waiting time per point:
    * (number of buses * 2) / 60
    */
-  routes.forEach((route) => {
-    route.legs.forEach((leg) => {
-      leg.steps.forEach((step) => {
-        // if walking - add walking time
-        if (step.travel_mode === TravelMode.walking) {
-        }
+  // routes.forEach((route) => {
+  //   route.legs.forEach((leg) => {
+  //     leg.steps.forEach((step) => {
+  //       // if walking - add walking time
+  //       if (step.travel_mode === TravelMode.walking) {
+  //       }
 
-        // if transit -
-        if (step.travel_mode === TravelMode.transit) {
-          // get the transit name
-          const transit_details = step.transit_details;
-          const line = transit_details.line;
-          const name = line.name;
+  //       // if transit -
+  //       if (step.travel_mode === TravelMode.transit) {
+  //         // get the transit name
+  //         const transit_details = step.transit_details;
+  //         const line = transit_details.line;
+  //         const name = line.name;
 
-          // find in routes.csv - name === route_long_name , and bring route_id
+  //         // find in routes.csv - name === route_long_name , and bring route_id
 
-          // find in trips.csv - route_id , and bring trip_id
+  //         // find in trips.csv - route_id , and bring trip_id
 
-          // find in stop_times.csv - trip_id , and bring the relevant arrival_time
-        }
+  //         // find in stop_times.csv - trip_id , and bring the relevant arrival_time
+  //       }
 
-        // console.log(step.duration);
-        // console.log(getFromStringTheNumberOfMinutes(step.duration.text));
-      });
-    });
-  });
+  //       // console.log(step.duration);
+  //       // console.log(getFromStringTheNumberOfMinutes(step.duration.text));
+  //     });
+  //   });
+  // });
 
   // read csv file to find more info about the buses
 
@@ -208,26 +215,5 @@ const main = async (): Promise<void> => {
   // connect to the database
   initializeMongo();
 
-  // start the calculation of person
-  const continueQuestions = [
-    {
-      type: "list",
-      name: "continueGet",
-      message: "Do another calculation?",
-      choices: ["continue", "stop"],
-    },
-  ];
-
-  let continueGet: boolean = true;
-
-  // get the routs
   main();
-
-  while (continueGet) {
-    await main();
-
-    await inquirer.prompt(continueQuestions).then((answers) => {
-      if (answers.continueGet === "stop") continueGet = false;
-    });
-  }
 })();

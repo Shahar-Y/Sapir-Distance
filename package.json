@@ -24,7 +24,6 @@
     "@types/mongoose": "^5.11.97",
     "axios": "^0.27.2",
     "dotenv": "^16.0.2",
-    "inquirer": "^8.2.4",
     "inquirer-datepicker-prompt": "^0.4.2",
     "mongoose": "^5.11.15"
   },
