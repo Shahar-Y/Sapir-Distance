@@ -93,6 +93,7 @@ export const TripModel = mongoose.model<ITrip & mongoose.Document>(
 );
 
 export const StopModel = mongoose.model<IStopTime & mongoose.Document>(
-  "stop",
-  StopTimeSchema
+  "stop_time",
+  StopTimeSchema,
+  "stop_times"
 );
