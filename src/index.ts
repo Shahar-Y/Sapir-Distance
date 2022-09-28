@@ -1,7 +1,6 @@
-import mongoose from "mongoose";
-import { algorithmFunc } from "./algorithm";
+import { Server } from "./router";
+import express from "express";
 import { initializeMongo } from "./mongo";
-import { compareRoutes } from "./timeFunctions";
 
 // origin = 'נופר 14 רחובות ישראל';
 // origin = 'נחל נעמן 1 אשדוד ישראל';
@@ -15,12 +14,17 @@ const arrival_time = new Date(2022, 10, 2, 9);
   // connect to the database
   await initializeMongo();
 
-  const solution = await algorithmFunc(origin, destination, arrival_time);
+  // initiate the server
+  const server = new Server(3000);
+  server.config();
+  server.start();
 
-  // calculate average total time of first three routes
-  const avgTotalTime =
-    solution.slice(0, 3).reduce((sum, curr) => sum + curr.totalTime, 0) / 3;
-  console.log(avgTotalTime);
+  // const solution = await algorithmFunc(origin, destination, arrival_time);
 
-  mongoose.connection.close();
+  // // calculate average total time of first three routes
+  // const avgTotalTime =
+  //   solution.slice(0, 3).reduce((sum, curr) => sum + curr.totalTime, 0) / 3;
+  // console.log(avgTotalTime);
+
+  // mongoose.connection.close();
 })();

@@ -69,6 +69,10 @@ export const algorithmFunc = async (
 
   // get the routes
   const results = await client.directions(directionsRequest);
+  if (!(results.data && results.data.routes && results.data.routes.length)) {
+    throw new Error("No routes found");
+  }
+
   const data = results.data;
   console.log("starting!");
   // console.log(data);
