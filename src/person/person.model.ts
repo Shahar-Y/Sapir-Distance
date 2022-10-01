@@ -2,10 +2,10 @@ import mongoose from "mongoose";
 import { IPersonResult } from "./person.interface";
 
 const PersonSchema: mongoose.Schema = new mongoose.Schema({
-  firstName: {
+  sex: {
     type: String,
   },
-  lastName: {
+  fullName: {
     type: String,
   },
   serviceType: {
@@ -18,7 +18,7 @@ const PersonSchema: mongoose.Schema = new mongoose.Schema({
     type: String,
   },
   // Json data
-  routeCalculation: {
+  routeCalculations: {
     type: String,
   },
 });

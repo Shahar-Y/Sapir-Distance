@@ -1,9 +1,9 @@
 export interface IPersonResult {
-  firstName: string;
-  lastName: string;
+  sex: string;
+  fullName: string;
   serviceType: string;
   address: string;
   statusExpiration: string;
   // Json data
-  routeCalculation: string;
+  routeCalculations: string;
 }

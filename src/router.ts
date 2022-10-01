@@ -96,9 +96,9 @@ export class Server {
     this.router.post(
       "/api/person",
       async (req: express.Request, res: express.Response) => {
+        const sex = (req.body.sex as string) || "MALE";
         const address = req.body.address as string;
-        const firstName = req.body.firstName as string;
-        const lastName = req.body.lastName as string;
+        const fullName = req.body.fullName as string;
         const serviceType = req.body.serviceType as string;
         const statusExpiration = req.body.statusExpiration as string;
 
@@ -113,14 +113,14 @@ export class Server {
           };
 
           const person: IPersonResult = {
+            sex,
             address,
-            firstName,
-            lastName,
+            fullName,
             serviceType,
             statusExpiration,
 
             // turn calculation into string
-            routeCalculation: JSON.stringify(calculation),
+            routeCalculations: JSON.stringify(calculation),
           };
           // Save person to mongoDB
 
