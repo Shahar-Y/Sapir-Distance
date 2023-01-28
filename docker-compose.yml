@@ -1,0 +1,23 @@
+version: "3"
+services:
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+
+  distance-ui:
+    image: distance-ui:latest
+    # build: ../distance-ui
+    expose:
+      - "80"
+    ports:
+      - "80:80"
+
+  sapir-diatance:
+    image: sapir-distance:latest
+    expose:
+      - "3000"
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./.env
