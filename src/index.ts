@@ -4,9 +4,9 @@ import { initializeMongo } from "./mongo";
 
 // origin = 'נופר 14 רחובות ישראל';
 // origin = 'נחל נעמן 1 אשדוד ישראל';
-const origin = "פריחת הסמדר 9 גבעת עדה ישראל";
+const origin = "Sarona Market, Tel Aviv";
 // origin = "קיבוץ דפנה";
-const destination = "שלמה בן יוסף 32 תל אביב ישראל";
+const destination = "Haim Arlozorov St 30, Petah Tikva";
 //   departure_time = new Date(2022, 10, 2, 7);
 const arrival_time = new Date(2022, 10, 2, 9);
 
